@@ -43,8 +43,8 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |            
-            sudo -i
             sudo docker login ${{ secrets.ALI_ACR_REGISTRY }} -u ${{ secrets.ALI_ACR_USERNAME }} -p ${{ secrets.ALI_ACR_PASSWORD }}
+            sudo -i
 
             cd /root/unity-networking
             export ACR_IMAGE="${{env.IMAGE_NAME}}:latest"
