@@ -43,13 +43,14 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |            
+            sudo -i
             sudo docker login ${{ secrets.ALI_ACR_REGISTRY }} -u ${{ secrets.ALI_ACR_USERNAME }} -p ${{ secrets.ALI_ACR_PASSWORD }}
 
             cd /root/unity-networking
             export ACR_IMAGE="${{env.IMAGE_NAME}}:latest"
 
-            docker compose pull
-            docker compose up -d
+            sudo docker compose pull
+            sudo docker compose up -d
 
-            docker ps
-            docker logs --tail 50 unity-server
+            sudo docker ps
+            sudo docker logs --tail 50 unity-server
