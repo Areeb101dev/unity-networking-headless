@@ -66,6 +66,7 @@ jobs:
               --name unity-server \
               --restart always \
               -p 7777:7777/tcp \
+              -p 7777:7777/udp \
               ${{ env.IMAGE_NAME }}:latest
 
             # Show status + recent logs
