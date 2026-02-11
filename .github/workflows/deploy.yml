@@ -1,56 +1,75 @@
-name: Unity Headless server build
+name: Deploy Unity Server (Mirror Telepathy)
+
 on:
   push:
-    branches:
-      - main
+    branches: [ "staging" ]
   workflow_dispatch:
 
 env:
   IMAGE_NAME: ${{ secrets.ALI_ACR_REGISTRY }}/${{ secrets.ALI_ACR_NAMESPACE }}/${{ secrets.ALI_ACR_REPO }}
 
 jobs:
-  build_push_deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout (with LFS if used)
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
         with:
-          lfs: true
+          lfs: true   # keep if your build is stored in LFS (safe even if not)
 
-      - name: Verify build files exist
+      # Optional: sanity check build files exist
+      - name: Verify server build files
         run: |
           ls -la server_build
           test -f server_build/MyGameServer.x86_64
           test -d server_build/MyGameServer_Data
 
-      - name: Login to Alibaba ACR
+      # 1) Login to Alibaba ACR
+      - name: Login to Alibaba Cloud ACR
         uses: docker/login-action@v2
         with:
           registry: ${{ secrets.ALI_ACR_REGISTRY }}
           username: ${{ secrets.ALI_ACR_USERNAME }}
           password: ${{ secrets.ALI_ACR_PASSWORD }}
 
-      - name: Build & Push Docker image to ACR
-        run: |          
+      # 2) Build & push docker image
+      - name: Build and Push Docker Image
+        run: |
           docker build -t $IMAGE_NAME:latest .
           docker push $IMAGE_NAME:latest
 
-      - name: Deploy on ECS (pull + restart)
-        uses: appleboy/ssh-action@v1.0.3
+      # 3) Deploy to ECS via SSH
+      - name: Deploy to ECS
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST_IP }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |            
-            sudo docker login ${{ secrets.ALI_ACR_REGISTRY }} -u ${{ secrets.ALI_ACR_USERNAME }} -p ${{ secrets.ALI_ACR_PASSWORD }}
-            sudo -i
+          script: |
+            set -e
 
-            cd /root/unity-networking
-            export ACR_IMAGE="${{env.IMAGE_NAME}}:latest"
+            # Login to ACR on server (use password-stdin to avoid warning)
+            echo "${{ secrets.ALI_ACR_PASSWORD }}" | sudo docker login ${{ secrets.ALI_ACR_REGISTRY }} \
+              -u ${{ secrets.ALI_ACR_USERNAME }} --password-stdin
 
-            sudo docker compose pull
-            sudo docker compose up -d
+            # Pull the new image
+            sudo docker pull ${{ env.IMAGE_NAME }}:latest
 
-            sudo docker ps
-            sudo docker logs --tail 50 unity-server
+            # Stop and remove old container
+            sudo docker stop unity-server || true
+            sudo docker rm unity-server || true
+
+            # Run new container: Telepathy TCP on 7777
+            sudo docker run -d \
+              --name unity-server \
+              --restart always \
+              -p 7777:7777/tcp \
+              ${{ env.IMAGE_NAME }}:latest
+
+            # Show status + recent logs
+            sudo docker ps | grep unity-server || true
+            sudo docker logs --tail 80 unity-server || true
+
+            # Cleanup old images
+            sudo docker image prune -f
