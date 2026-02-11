@@ -2,7 +2,8 @@ name: Deploy Unity Server (Mirror Telepathy)
 
 on:
   push:
-    branches: [ "staging" ]
+    branches:
+      - main
   workflow_dispatch:
 
 env:
