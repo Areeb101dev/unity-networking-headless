@@ -69,7 +69,7 @@ jobs:
               -p 7777:7777/udp \
               -p 8083:8083/tcp \
               -e NODE_EXTERNAL_IP=10.0.0.118 \
-              -e MULTIPLAYER_SERVER_SECRET=${{ secrets.MULTIPLAYER_SERVER_SECRET }} \
+              -e MULTIPLAYER_SERVER_SECRET=1_0+unity@3kfnmkm*j&^lp \
               ${{ env.IMAGE_NAME }}:latest
 
             # Show status + recent logs
