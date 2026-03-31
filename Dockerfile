@@ -20,4 +20,4 @@ RUN chmod +x /app/MyGameServer.x86_64
 
 EXPOSE 7777/tcp
 
-CMD ["/app/MyGameServer.x86_64", "-batchmode", "-nographics"]
+CMD ["/app/MyGameServer.x86_64", "-batchmode", "-nographics", "-logFile", "-"]
